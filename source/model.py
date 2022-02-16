@@ -30,7 +30,7 @@ class GCN(torch.nn.Module):
         # 1. Obtain node embeddings 
         x = self.GIN(x, edge_index)
         x = x.relu()
-        x = self.GIN1(x, edge_index).relu()
+        x = self.GIN1(x, edge_index)
         x = x.relu()
         x = self.GIN2(x, edge_index)
 

@@ -14,18 +14,26 @@ class GraphDataset():
         self.data = list()
 
         if config.preloader is None:
-            self.config.preloader = self.config.save_path+'/data.pt'
+            self.config.preloader = config.save_path+'/data.pt'
             self.edge_detection()
             self.make_graphs()
         else:
-            self.data = torch.load(self.config.preloader, map_location=self.config.device)
+            self.data = torch.load(config.preloader, map_location=config.device)
 
     def edge_detection(self):
-        # Here we use a temporary way, will be replaced later
-        # os.system(" ") just run command line
-        cmd1 = "LD_LIBRARY_PATH=/usr/local/lib && export LD_LIBRARY_PATH"
-        cmd2 = "./edge_detection "+self.config.edge+" "+self.config.data_path
-        os.system(cmd1 + "&&" + cmd2)
+        # Here we use some very bad ways, will be replaced by a stable one later
+        try:
+            # run some command lines
+            cmd1 = "LD_LIBRARY_PATH=/usr/local/lib && export LD_LIBRARY_PATH"
+            cmd2 = "./edge_detection "+self.config.edge+" "+self.config.data_path
+            status = os.system(cmd1 + "&&" + cmd2)
+            if status != 0:
+                raise Exception('Error! Let us try another way')
+        except:
+            from edge_detection import convert_edge_all_dir
+            self.config.edge = 'prewitt'
+            convert_edge_all_dir(self.config.data_path)
+            
         self.edge_dir = self.config.data_path+'_'+self.config.edge
 
     def make_graphs(self):
@@ -37,7 +45,8 @@ class GraphDataset():
         random.shuffle(self.data)
         torch.save(self.data, self.config.preloader)
 
-    def image_to_graph(self, filename, y):
+    @staticmethod
+    def image_to_graph(filename, y):
         x = []
         edge = [[], []]
 
@@ -66,8 +75,9 @@ class GraphDataset():
                         edge[1].extend((nodes[i-1][j], nodes[i][j]))
 
         scaler = StandardScaler()
+        x = scaler.fit_transform(x)
 
-        return Data(x = torch.tensor(scaler.fit_transform(x), dtype = torch.float),
+        return Data(x = torch.tensor(x, dtype = torch.float),
                     edge_index = torch.tensor(edge, dtype = int),
                     y = torch.tensor([y]))
 

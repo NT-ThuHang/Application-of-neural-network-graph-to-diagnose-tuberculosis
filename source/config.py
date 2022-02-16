@@ -34,7 +34,7 @@ class Config(object):
                     zip_ref.extractall()
                 self.data_path = os.getcwd()+'/TB_Chest_Radiography_Database'
         else:
-            # don't care about data if we use a preloader
+            # don't care about data if we are using a preloader
             pass
 
         if self.save_path is None:

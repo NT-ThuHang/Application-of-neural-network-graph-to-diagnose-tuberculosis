@@ -16,7 +16,7 @@ from model import GCN
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_path', default=None, help='Path to data directory')
 parser.add_argument('--save_path', default=None, help='Directory path to save results')
-parser.add_argument('--preloader', default=None, help='Processed data directory path to load')
+parser.add_argument('--preloader', default=None, help='Processed data file path to load')
 parser.add_argument('--edge', default='prewitt', help='Edge detection method')
 parser.add_argument('--embedding', default='graph_covid_net', help='Graph embedding method')
 
