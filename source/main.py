@@ -5,6 +5,7 @@
 import os
 import numpy as np
 import argparse
+from pathlib import Path
 import torch
 from config import Config
 from graphDataset import GraphDataset
@@ -14,9 +15,8 @@ from model import GCN
 
 # -------------------- Define parser -------------------- #
 parser = argparse.ArgumentParser()
-parser.add_argument('--data_path', default=None, help='Path to data directory')
-parser.add_argument('--save_path', default=None, help='Directory path to save results')
-parser.add_argument('--preloader', default=None, help='Processed data file path to load')
+parser.add_argument('-d', '--data', default=None, help='Path to data directory, or processed data file', type = Path)
+parser.add_argument('-s', '--save', default=None, help='Directory path to save intermediate results', type = Path)
 parser.add_argument('--edge', default='prewitt', help='Edge detection method')
 parser.add_argument('--embedding', default='graph_covid_net', help='Graph embedding method')
 
@@ -26,7 +26,7 @@ args = parser.parse_args()
 config = Config(args)
 config.show()
 # -------------------- Load data -------------------- #
-dataset = GraphDataset(config).data
+dataset = GraphDataset(config).dataset
 split_index = (int)(config.train_ratio*len(dataset))
 data_train = dataset[:split_index]
 data_test = dataset[split_index:]
@@ -43,6 +43,8 @@ def train():
     model.train()
 
     for data in train_loader:  # Iterate in batches over the training dataset.
+        data = data.to(config.device)
+
         out = model(data.x, data.edge_index, data.batch)  # Perform a single forward pass.
         loss = criterion(out, data.y)
         loss.backward()  # Derive gradients.
@@ -59,7 +61,6 @@ def test(loader):
             out = model(data.x, data.edge_index, data.batch)
             pred = out.argmax(dim=1)
             correct += int((pred == data.y).sum())
-
             loss += criterion(out, data.y)
     return correct / len(loader.dataset), loss/ len(loader.dataset)
 
@@ -68,3 +69,7 @@ for epoch in range(1, 40):
     train_acc, train_loss = test(train_loader)
     test_acc, test_loss = test(test_loader)
     print(f'Epoch: {epoch:03d}, Train Acc: {train_acc:.4f}, Train Loss: {train_loss:.4f}, Test Acc: {test_acc:.4f}, Test Loss: {test_loss:.4f}')
+
+# TODO
+def write_log_file():
+    pass
