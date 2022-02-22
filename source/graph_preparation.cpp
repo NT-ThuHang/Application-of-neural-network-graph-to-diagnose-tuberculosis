@@ -10,6 +10,8 @@
 #include<opencv2/imgproc/imgproc.hpp>
 #include<opencv2/highgui/highgui.hpp>
 
+#define FILTER_THRESHOLD 40
+
 using namespace std;
 using namespace cv;
 
@@ -72,7 +74,7 @@ int yPrewitt(const Mat &image, int i, int j){
 void prewitt(const Mat &src, Mat &dst){
     int gx, gy, sum;
     int n = src.rows, m = src.cols;
-    dst = Mat::zeros(Size(n, m), CV_8UC1);
+    dst = Mat::zeros(src.size(), CV_8UC1);
 
     for(int i = 1; i < n - 1; i++){
         for(int j = 1; j < m - 1; j++){
@@ -124,17 +126,11 @@ void graph_covid_net(const Mat& img, int label){
             for(int j=0; j<m; j++)
                 nodes[i][j] = -1;
 
-    int max_pix_val = 0, nodeid = 0, edge_count=0;
-    for(int i = 0; i<n; i++)
-        for(int j=0; j<m; j++)
-            if(img.at<uchar>(i, j)>max_pix_val)
-                max_pix_val = img.at<uchar>(i, j);
-
-    int half = max_pix_val/2;
+    int nodeid = 0, edge_count=0;
 
     for(int i = 0; i<n; i++){
         for(int j=0; j<m; j++)
-            if(img.at<uchar>(i, j)>half){
+            if(img.at<uchar>(i, j)>FILTER_THRESHOLD){
                 nodes[i][j] = nodeid;
 
                 writer.x<<i<<','<<j<<endl;
@@ -187,7 +183,7 @@ void iter_dir(const string &src_dir_path, const string &dst_dir_path){
         }
         else{
             // this entry is a file
-            if(!hasEnding(name, ".png"))
+            if(!hasEnding(name, ".png") && !hasEnding(name, ".jpg"))
                 continue; // not an png image
                 
             string src_file_path = src_dir_path+'/'+name;
