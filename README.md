@@ -5,5 +5,5 @@ To build C++ source
 
 Some examples
 
-*   `python3 source/main.py -d sample_data`
-*   `python3 source/main.py -d data.pt`
+*   `python3 source/main.py sample_data`
+*   `python3 source/main.py data.pt`

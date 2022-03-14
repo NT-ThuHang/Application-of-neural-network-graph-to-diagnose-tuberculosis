@@ -122,8 +122,8 @@ def raw_to_graphs(raw_dir : Path):
 
 		x, A_head, A_tail = [], [], []
 		for _ in range(n_nodes):
-			x_coord, y_coord = x_file.readline().split(',')
-			x.append((int(x_coord), int(y_coord)))
+			x_coord, y_coord, pix = x_file.readline().split(',')
+			x.append((int(x_coord), int(y_coord), int(pix)))
 
 		for _ in range(n_edges):
 			head, tail = A_file.readline().split(',')
@@ -137,11 +137,17 @@ def raw_to_graphs(raw_dir : Path):
 	y_file.close()
 
 	return dataset
-		
+
+def pixel_analyze(filename):
+	img = cv2.imread(filename, cv2.IMREAD_GRAYSCALE)
+	
+	import matplotlib.pyplot as plt
+	plt.hist(img.flatten(), bins = 256)
+	plt.savefig('analyze_result.png')
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
-	parser.add_argument('-t', '--task')
+	parser.add_argument('--task')
 	parser.add_argument('-s', '--source', type = Path)
 	parser.add_argument('-d', '--dest', type = Path)
 	args = parser.parse_args()
@@ -151,10 +157,11 @@ if __name__ == '__main__':
 			edge_detection(args.source, args.source.parent)
 		else:
 			edge_detection(args.source, args.dest)
+	elif args.task == 'pixel_analyze':
+		pixel_analyze(args.source)
 	elif args.task == 'image_to_graph':
 		# TODO
 		pass
 	elif args.task == 'raw_to_graphs':
 		# TODO
 		pass
-

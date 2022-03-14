@@ -16,7 +16,7 @@ using namespace std;
 using namespace cv;
 
 void (*apply_edge_detection)(const Mat&, Mat&);
-void (*apply_graph_preparation)(const Mat&, int);
+void (*apply_graph_preparation)(const Mat&, const Mat&, int);
 
 int xSobel(const Mat &image, int i, int j){
     return image.at<uchar>(i-1, j-1) +
@@ -115,7 +115,45 @@ struct rawGraphsFiles{
 
 rawGraphsFiles writer;
 
-void graph_covid_net(const Mat& img, int label){
+void _4_local(const Mat& src_img, const Mat& edge_img, int label){
+    // fill the matrix nxm with -1
+    int n = edge_img.rows, m = edge_img.cols;
+    static vector<vector<int>>nodes;
+
+    if(nodes.size() != n || nodes[0].size() != m)
+        nodes = vector<vector<int>>(n, vector<int>(m, -1));
+    else for(int i=0; i<n; i++)
+            for(int j=0; j<m; j++)
+                nodes[i][j] = -1;
+
+    int nodeid = 0, edge_count=0;
+
+    for(int i=0; i<n; i++){
+        for(int j=0; j<m; j++)
+            if(edge_img.at<uchar>(i, j)>FILTER_THRESHOLD){
+                nodes[i][j] = nodeid;
+
+                writer.x<<i<<','<<j<<','<<to_string(src_img.at<uchar>(i, j))<<endl;
+
+                if(j>0 && nodes[i][j-1] != -1){
+                    writer.A<<nodes[i][j-1]<<','<<nodeid<<endl;
+                    writer.A<<nodeid<<','<<nodes[i][j-1]<<endl;
+                    edge_count += 2;
+                }
+
+                if(i>0 && nodes[i-1][j] != -1){
+                    writer.A<<nodes[i-1][j]<<','<<nodeid<<endl;
+                    writer.A<<nodeid<<','<<nodes[i-1][j]<<endl;
+                    edge_count += 2;
+                }
+
+                nodeid += 1;
+            }
+    }
+    writer.y<<nodeid<<','<<edge_count<<','<<label<<endl;
+}
+
+void _8_local(const Mat& img0, const Mat& img, int label){
     // fill the matrix nxm with -1
     int n = img.rows, m = img.cols;
     static vector<vector<int>>nodes;
@@ -128,12 +166,12 @@ void graph_covid_net(const Mat& img, int label){
 
     int nodeid = 0, edge_count=0;
 
-    for(int i = 0; i<n; i++){
+    for(int i=0; i<n; i++){
         for(int j=0; j<m; j++)
             if(img.at<uchar>(i, j)>FILTER_THRESHOLD){
                 nodes[i][j] = nodeid;
 
-                writer.x<<i<<','<<j<<endl;
+                writer.x<<i<<','<<j<<','<<to_string(img0.at<uchar>(i, j))<<endl;
 
                 if(j>0 && nodes[i][j-1] != -1){
                     writer.A<<nodes[i][j-1]<<','<<nodeid<<endl;
@@ -144,6 +182,18 @@ void graph_covid_net(const Mat& img, int label){
                 if(i>0 && nodes[i-1][j] != -1){
                     writer.A<<nodes[i-1][j]<<','<<nodeid<<endl;
                     writer.A<<nodeid<<','<<nodes[i-1][j]<<endl;
+                    edge_count += 2;
+                }
+
+                if(i>0 && j>0 && nodes[i-1][j-1] != -1){
+                    writer.A<<nodes[i-1][j-1]<<','<<nodeid<<endl;
+                    writer.A<<nodeid<<','<<nodes[i-1][j-1]<<endl;
+                    edge_count += 2;
+                }
+
+                if(i>0 && j<m-1 && nodes[i-1][j+1] != -1){
+                    writer.A<<nodes[i-1][j+1]<<','<<nodeid<<endl;
+                    writer.A<<nodeid<<','<<nodes[i-1][j+1]<<endl;
                     edge_count += 2;
                 }
 
@@ -174,7 +224,7 @@ void iter_dir(const string &src_dir_path, const string &dst_dir_path){
         int type = entry->d_type;
         string name = entry->d_name;
         if(type == 4){
-            // this entry is a directory
+            // this entry represents a directory
             if(name != "." && name != ".."){
                 string src_subdir_path = src_dir_path + '/' +name;
                 string dst_subdir_path = dst_dir_path + '/' +name;
@@ -182,9 +232,9 @@ void iter_dir(const string &src_dir_path, const string &dst_dir_path){
             }
         }
         else{
-            // this entry is a file
+            // this entry represents a file
             if(!hasEnding(name, ".png") && !hasEnding(name, ".jpg"))
-                continue; // not an png image
+                continue; // not a png or a jpg image
                 
             string src_file_path = src_dir_path+'/'+name;
             string dst_file_path = dst_dir_path+'/'+name;
@@ -193,7 +243,7 @@ void iter_dir(const string &src_dir_path, const string &dst_dir_path){
 
             src = imread(src_file_path, IMREAD_GRAYSCALE);
             apply_edge_detection(src, dst);
-            apply_graph_preparation(dst, labelid);
+            apply_graph_preparation(src, dst, labelid);
             imwrite(dst_file_path, dst); // optional
             cout << "\r" <<"Processed "<< ++file_count <<" files"<<flush;
         }
@@ -220,7 +270,7 @@ int main(int argc, const char** argv){
         apply_edge_detection = canny;
     else return -1;
 
-    apply_graph_preparation = graph_covid_net;
+    apply_graph_preparation = _8_local;
 
     string root = argv[3]+string("/raw");
     mkdir(root.c_str(), ACCESSPERMS);

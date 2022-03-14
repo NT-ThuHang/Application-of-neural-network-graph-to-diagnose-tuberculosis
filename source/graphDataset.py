@@ -15,7 +15,7 @@ class GraphDataset():
             self.edge_detection()
             self.make_graphs()
         else:
-            self.dataset = torch.load(self.data, map_location=config.device)
+            self.dataset = torch.load(self.data)
 
     def edge_detection(self):
         # Here we use some very bad ways, will be replaced by a stable one later

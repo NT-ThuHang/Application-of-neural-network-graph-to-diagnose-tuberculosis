@@ -1,6 +1,4 @@
-from genericpath import exists
 import torch
-from pathlib import Path
 from glob import glob
 
 class Config(object):
@@ -25,7 +23,10 @@ class Config(object):
     def setup(self):
         if self.save is None:
             # generate to use if not provided
-            root = self.data.parent
+            if self.data.is_dir():
+                root = self.data.parent
+            else:
+                root = self.data.parent.parent
             counter = 0
             while True:
                 counter += 1
@@ -40,10 +41,3 @@ class Config(object):
     def show(self):
         for attr, val in vars(self).items():
             print(attr+':', val)
-        
-
-
-
-
-        
-
