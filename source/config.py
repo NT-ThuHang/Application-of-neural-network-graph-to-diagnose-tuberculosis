@@ -1,5 +1,4 @@
 import torch
-from glob import glob
 
 class Config(object):
     def __init__(self, args):
@@ -9,11 +8,6 @@ class Config(object):
         self.edge = args.edge
         self.embedding = args.embedding
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-        if self.data.is_dir():
-            self.n_classes = len(glob(str(self.data)+'/*/'))
-        else:
-            #FIXME
-            self.n_classes = 2
         self.setup()
 
         # define variables

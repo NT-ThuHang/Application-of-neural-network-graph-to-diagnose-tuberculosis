@@ -94,22 +94,25 @@ void canny(const Mat &src, Mat &dst){
 }
 
 struct rawGraphsFiles{
-    ofstream x, A, y;
+    ofstream x, A, y, Y;
 
     void open(string root){
-        string x_filepath = root+"/node_features.txt";
-        string A_filepath = root+"/edges.txt";
-        string y_filepath = root+"/graph_features.txt";
+        string x_path = root+"/node_features.txt";
+        string A_path = root+"/edges.txt";
+        string y_path = root+"/graph_features.txt";
+        string Y_path = root+"/label_names.txt";
 
-        x.open(x_filepath.c_str(), ios::out | ios::trunc);
-        A.open(A_filepath.c_str(), ios::out | ios::trunc);
-        y.open(y_filepath.c_str(), ios::out | ios::trunc);
+        x.open(x_path.c_str(), ios::out | ios::trunc);
+        A.open(A_path.c_str(), ios::out | ios::trunc);
+        y.open(y_path.c_str(), ios::out | ios::trunc);
+        Y.open(Y_path.c_str(), ios::out | ios::trunc);
     }
 
     void close(){
         x.close();
         A.close();
         y.close();
+        Y.close();
     }
 };
 
@@ -133,7 +136,7 @@ void _4_local(const Mat& src_img, const Mat& edge_img, int label){
             if(edge_img.at<uchar>(i, j)>FILTER_THRESHOLD){
                 nodes[i][j] = nodeid;
 
-                writer.x<<i<<','<<j<<','<<to_string(src_img.at<uchar>(i, j))<<endl;
+                writer.x<<i<<','<<j<<','<<to_string(src_img.at<uchar>(i, j))<<','<<to_string(xPrewitt(src_img, i, j))<<','<<to_string(yPrewitt(src_img, i, j))<<endl;
 
                 if(j>0 && nodes[i][j-1] != -1){
                     writer.A<<nodes[i][j-1]<<','<<nodeid<<endl;
@@ -153,7 +156,7 @@ void _4_local(const Mat& src_img, const Mat& edge_img, int label){
     writer.y<<nodeid<<','<<edge_count<<','<<label<<endl;
 }
 
-void _8_local(const Mat& img0, const Mat& img, int label){
+void _8_local(const Mat& src_img, const Mat& img, int label){
     // fill the matrix nxm with -1
     int n = img.rows, m = img.cols;
     static vector<vector<int>>nodes;
@@ -171,7 +174,7 @@ void _8_local(const Mat& img0, const Mat& img, int label){
             if(img.at<uchar>(i, j)>FILTER_THRESHOLD){
                 nodes[i][j] = nodeid;
 
-                writer.x<<i<<','<<j<<','<<to_string(img0.at<uchar>(i, j))<<endl;
+                writer.x<<i<<','<<j<<','<<to_string(src_img.at<uchar>(i, j))<<','<<to_string(xPrewitt(src_img, i, j))<<','<<to_string(yPrewitt(src_img, i, j))<<endl;
 
                 if(j>0 && nodes[i][j-1] != -1){
                     writer.A<<nodes[i][j-1]<<','<<nodeid<<endl;
@@ -228,6 +231,7 @@ void iter_dir(const string &src_dir_path, const string &dst_dir_path){
             if(name != "." && name != ".."){
                 string src_subdir_path = src_dir_path + '/' +name;
                 string dst_subdir_path = dst_dir_path + '/' +name;
+                writer.Y<<name<<endl;
                 iter_dir(src_subdir_path, dst_subdir_path);
             }
         }
@@ -270,7 +274,7 @@ int main(int argc, const char** argv){
         apply_edge_detection = canny;
     else return -1;
 
-    apply_graph_preparation = _8_local;
+    apply_graph_preparation = _4_local;
 
     string root = argv[3]+string("/raw");
     mkdir(root.c_str(), ACCESSPERMS);
