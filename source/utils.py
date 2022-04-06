@@ -6,6 +6,7 @@ from pathlib import Path
 import torch
 from torch_geometric.data import Data
 from sklearn.preprocessing import StandardScaler
+import sklearn.metrics as metrics
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -144,8 +145,8 @@ def raw_to_graphs(raw_dir : Path):
 
 		x, A_head, A_tail = [], [], []
 		for _ in range(n_nodes):
-			x_coord, y_coord, pix, xP, yP = x_file.readline().split(',')
-			x.append((int(x_coord), int(y_coord), int(pix), int(xP), int(yP)))
+			node = tuple(int(feature) for feature in x_file.readline().split(','))
+			x.append(node)
 
 		for _ in range(n_edges):
 			head, tail = A_file.readline().split(',')
@@ -157,6 +158,7 @@ def raw_to_graphs(raw_dir : Path):
 	x_file.close()
 	A_file.close()
 	y_file.close()
+	Y_file.close()
 
 	return dataset, label_names
 
@@ -173,7 +175,26 @@ def plot_confusion_matrix(cm, labels, save = None, title = 'Confusion matrix'):
 	ax.yaxis.set_ticklabels(labels, rotation=0)
 
 	if save is not None:
-		plt.savefig(save, bbox_inches='tight', format = 'svg')
+		plt.savefig(save, bbox_inches='tight', format = save.name.split('.')[-1])
+	else:
+		plt.show()
+
+def plot_ROC(cm, labels, save = None, title = 'ROC'):
+	assert len(cm) == len(labels)
+	# calculate the fpr and tpr for all thresholds of the classification
+	fpr, tpr, threshold = metrics.roc_curve(cm, labels)
+	roc_auc = metrics.auc(fpr, tpr)
+	#display
+	plt.title('Receiver Operating Characteristic (ROC)')
+	plt.plot(fpr, tpr, 'b', label = 'AUC = %0.2f' % roc_auc)
+	plt.legend(loc = 'lower right')
+	plt.plot([0, 1], [0, 1],'r--')
+	plt.xlim([0, 1])
+	plt.ylim([0, 1])
+	plt.ylabel('True Positive Rate')
+	plt.xlabel('False Positive Rate')
+	if save is not None:
+		plt.savefig(save, bbox_inches='tight', format = save.name.split('.')[-1])
 	else:
 		plt.show()
 

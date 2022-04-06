@@ -10,7 +10,7 @@
 #include<opencv2/imgproc/imgproc.hpp>
 #include<opencv2/highgui/highgui.hpp>
 
-#define FILTER_THRESHOLD 40
+#define FILTER_THRESHOLD 25
 
 using namespace std;
 using namespace cv;
@@ -131,13 +131,22 @@ void _4_local(const Mat& src_img, const Mat& edge_img, int label){
 
     int nodeid = 0, edge_count=0;
 
-    for(int i=0; i<n; i++){
-        for(int j=0; j<m; j++)
+    for(int i=1; i<n-1; i++){
+        for(int j=1; j<m-1; j++)
             if(edge_img.at<uchar>(i, j)>FILTER_THRESHOLD){
                 nodes[i][j] = nodeid;
-
                 writer.x<<i<<','<<j<<','<<to_string(src_img.at<uchar>(i, j))<<','<<to_string(xPrewitt(src_img, i, j))<<','<<to_string(yPrewitt(src_img, i, j))<<endl;
-
+                // writer.x<<i<<','<<j<<',';
+                // writer.x<<to_string(src_img.at<uchar>(i-1, j-1))<<',';
+                // writer.x<<to_string(src_img.at<uchar>(i-1, j))<<',';
+                // writer.x<<to_string(src_img.at<uchar>(i-1, j+1))<<',';
+                // writer.x<<to_string(src_img.at<uchar>(i, j-1))<<',';
+                // writer.x<<to_string(src_img.at<uchar>(i, j))<<',';
+                // writer.x<<to_string(src_img.at<uchar>(i, j+1))<<',';
+                // writer.x<<to_string(src_img.at<uchar>(i+1, j-1))<<',';
+                // writer.x<<to_string(src_img.at<uchar>(i+1, j))<<',';
+                // writer.x<<to_string(src_img.at<uchar>(i+1, j+1))<<endl;
+                
                 if(j>0 && nodes[i][j-1] != -1){
                     writer.A<<nodes[i][j-1]<<','<<nodeid<<endl;
                     writer.A<<nodeid<<','<<nodes[i][j-1]<<endl;
@@ -237,7 +246,7 @@ void iter_dir(const string &src_dir_path, const string &dst_dir_path){
         }
         else{
             // this entry represents a file
-            if(!hasEnding(name, ".png") && !hasEnding(name, ".jpg"))
+            if(!hasEnding(name, ".png") && !hasEnding(name, ".jpeg"))
                 continue; // not a png or a jpg image
                 
             string src_file_path = src_dir_path+'/'+name;

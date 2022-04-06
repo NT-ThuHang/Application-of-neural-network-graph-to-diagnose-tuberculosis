@@ -63,8 +63,8 @@ class GraphDataset():
 
         train_set, val_set, test_set = random_split(self.dataset, self.sizes)
 
-        train_loader = DataLoader(train_set, self.batch_size, shuffle = True, num_workers=2)
-        val_loader = DataLoader(val_set, self.batch_size, shuffle = False, num_workers=2)
-        test_loader = DataLoader(test_set, self.batch_size, shuffle = False, num_workers=2)
+        train_loader = DataLoader(train_set, self.batch_size, shuffle = True, num_workers=4)
+        val_loader = DataLoader(val_set, self.batch_size, shuffle = False, num_workers=4)
+        test_loader = DataLoader(test_set, self.batch_size, shuffle = False, num_workers=4)
 
         return train_loader, val_loader, test_loader
