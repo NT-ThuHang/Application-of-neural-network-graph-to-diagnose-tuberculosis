@@ -1,16 +1,32 @@
 from pathlib import Path
+import torch
 class Config(object):
     def __init__(self, args):
         # directories
         self.data = args.data
         self.save = args.save
         self.edge = args.edge
-        self.embedding = args.embedding
         self.setup()
+        self.embedding = args.embedding
+        self.checkpoint_path = self.save / 'model_checkpoint.ckpt' 
+        self.logs_path = self.save / 'log.txt'
+        self.message = args.message
 
         # define variables
         self.train_ratio = 0.8
         self.batch_size = 64
+
+        #Hardware
+        self.device = torch.device('cuda:'+args.device if torch.cuda.is_available() else 'cpu')
+
+        #hyperparameter
+        self.lr_step = args.lr_step
+        self.lr = args.lr
+        self.gamma = args.gamma
+        self.input_channels = 2
+        self.hidden_channels = [32, 32, 32]
+        self.max_epoch = 200
+        self.patience = 4
 
     def setup(self):
         if self.save is None:

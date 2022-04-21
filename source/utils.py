@@ -92,6 +92,7 @@ def edge_detection(source, dest, method='prewitt'):
 				dest_file = dest_dir_path / source_file.name
 				cv2.imwrite(str(dest_file), imagemat)
 
+
 def image_to_graph(filename, label):
 	x = []
 	edge = [[], []]
@@ -163,7 +164,7 @@ def raw_to_graphs(raw_dir : Path):
 	return dataset, label_names
 
 def plot_confusion_matrix(cm, labels, save = None, title = 'Confusion matrix'):
-	assert len(cm) == len(labels)
+	#assert len(cm) == len(labels)
 
 	ax = sns.heatmap(cm, annot = True, cmap = 'Blues', fmt='d')
 	ax.set_title(title)

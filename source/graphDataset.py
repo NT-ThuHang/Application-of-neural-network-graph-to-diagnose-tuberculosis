@@ -3,7 +3,7 @@ import random
 from tqdm import tqdm
 from glob import glob
 from utils import edge_detection, image_to_graph, raw_to_graphs
-
+from pathlib import Path
 import torch
 from torch.utils.data import random_split
 from torch_geometric.loader import DataLoader
@@ -11,10 +11,11 @@ from torch_geometric.loader import DataLoader
 
 class GraphDataset():
     def __init__(self, config):
-        self.data = config.data
-        self.save = config.save
-        self.edge = config.edge
-        self.batch_size = config.batch_size
+        self.data = Path(config['data'])
+        print(self.data)
+        self.save = Path(config['save_path'])
+        self.edge_detection_method = config['edge_detection_method']
+        self.batch_size = int(config['batch_size'])
 
         if self.data.is_dir():
             self.edge_detection()
@@ -31,7 +32,7 @@ class GraphDataset():
         try:
             # run some command lines
             cmd1 = "LD_LIBRARY_PATH=/usr/local/lib && export LD_LIBRARY_PATH"
-            cmd2 = "source/graph_preparation "+self.edge+" "+str(self.data)+" "+str(self.save)
+            cmd2 = "source/graph_preparation "+self.edge_detection_method+" "+str(self.data)+" "+str(self.save)
             if os.system(cmd1 + "&&" + cmd2) != 0:
                 raise Exception('Error! Let us try another way')
         except:
@@ -43,7 +44,7 @@ class GraphDataset():
         self.labels = list()
 
         if not raw.is_dir():
-            edge = self.save / (self.data.name+'_'+self.edge)
+            edge = self.save / (self.data.name+'_'+self.edge_detection_method)
             for class_id, subdir in enumerate(edge.iterdir()):
                 self.labels.append(subdir.name)
                 for filename in tqdm(subdir.iterdir()):
