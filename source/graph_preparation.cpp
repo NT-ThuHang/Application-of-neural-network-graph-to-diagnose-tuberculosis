@@ -10,7 +10,8 @@
 #include<opencv2/imgproc/imgproc.hpp>
 #include<opencv2/highgui/highgui.hpp>
 
-#define FILTER_THRESHOLD 25
+#define LOWER_THRESHOLD 20
+#define UPPER_THRESHOLD 200
 
 using namespace std;
 using namespace cv;
@@ -27,7 +28,7 @@ int xSobel(const Mat &image, int i, int j){
                     image.at<uchar>(i+1, j+1);
 }
  
-int ySobel(const Mat &image, int j, int i){
+int ySobel(const Mat &image, int i, int j){
     return image.at<uchar>(i-1, j-1) +
                 2*image.at<uchar>(i-1, j) +
                  image.at<uchar>(i-1, j+1) -
@@ -54,6 +55,9 @@ void sobel(const Mat &src, Mat &dst){
 }
 
 int xPrewitt(const Mat &image, int i, int j){
+    // [-1, -1, -1],
+    // [ 0,  0,  0],
+    // [ 1,  1,  1]
     return image.at<uchar>(i-1, j-1) +
                 image.at<uchar>(i, j-1) +
                  image.at<uchar>(i+1, j-1) -
@@ -63,6 +67,9 @@ int xPrewitt(const Mat &image, int i, int j){
 }
  
 int yPrewitt(const Mat &image, int i, int j){
+    // [[-1,  0,  1],
+    //  [-1,  0,  1],
+    //  [-1,  0,  1]]
     return image.at<uchar>(i-1, j-1) +
                 image.at<uchar>(i-1, j) +
                  image.at<uchar>(i-1, j+1) -
@@ -133,19 +140,19 @@ void _4_local(const Mat& src_img, const Mat& edge_img, int label){
 
     for(int i=1; i<n-1; i++){
         for(int j=1; j<m-1; j++)
-            if(edge_img.at<uchar>(i, j)>FILTER_THRESHOLD){
+            if(edge_img.at<uchar>(i, j)>LOWER_THRESHOLD && edge_img.at<uchar>(i, j)<UPPER_THRESHOLD){
                 nodes[i][j] = nodeid;
-                writer.x<<i<<','<<j<<','<<to_string(src_img.at<uchar>(i, j))<<','<<to_string(xPrewitt(src_img, i, j))<<','<<to_string(yPrewitt(src_img, i, j))<<endl;
-                // writer.x<<i<<','<<j<<',';
-                // writer.x<<to_string(src_img.at<uchar>(i-1, j-1))<<',';
-                // writer.x<<to_string(src_img.at<uchar>(i-1, j))<<',';
-                // writer.x<<to_string(src_img.at<uchar>(i-1, j+1))<<',';
-                // writer.x<<to_string(src_img.at<uchar>(i, j-1))<<',';
-                // writer.x<<to_string(src_img.at<uchar>(i, j))<<',';
-                // writer.x<<to_string(src_img.at<uchar>(i, j+1))<<',';
-                // writer.x<<to_string(src_img.at<uchar>(i+1, j-1))<<',';
-                // writer.x<<to_string(src_img.at<uchar>(i+1, j))<<',';
-                // writer.x<<to_string(src_img.at<uchar>(i+1, j+1))<<endl;
+                // writer.x<<i<<','<<j<<','<<to_string(src_img.at<uchar>(i, j))<<','<<to_string(xPrewitt(src_img, i, j))<<','<<to_string(yPrewitt(src_img, i, j))<<endl;
+                writer.x<<i<<','<<j<<',';
+                writer.x<<to_string(src_img.at<uchar>(i-1, j-1))<<',';
+                writer.x<<to_string(src_img.at<uchar>(i-1, j))<<',';
+                writer.x<<to_string(src_img.at<uchar>(i-1, j+1))<<',';
+                writer.x<<to_string(src_img.at<uchar>(i, j-1))<<',';
+                writer.x<<to_string(src_img.at<uchar>(i, j))<<',';
+                writer.x<<to_string(src_img.at<uchar>(i, j+1))<<',';
+                writer.x<<to_string(src_img.at<uchar>(i+1, j-1))<<',';
+                writer.x<<to_string(src_img.at<uchar>(i+1, j))<<',';
+                writer.x<<to_string(src_img.at<uchar>(i+1, j+1))<<endl;
                 
                 if(j>0 && nodes[i][j-1] != -1){
                     writer.A<<nodes[i][j-1]<<','<<nodeid<<endl;
@@ -166,54 +173,54 @@ void _4_local(const Mat& src_img, const Mat& edge_img, int label){
 }
 
 void _8_local(const Mat& src_img, const Mat& img, int label){
-    // fill the matrix nxm with -1
-    int n = img.rows, m = img.cols;
-    static vector<vector<int>>nodes;
+    // // fill the matrix nxm with -1
+    // int n = img.rows, m = img.cols;
+    // static vector<vector<int>>nodes;
 
-    if(nodes.size() != n || nodes[0].size() != m)
-        nodes = vector<vector<int>>(n, vector<int>(m, -1));
-    else for(int i=0; i<n; i++)
-            for(int j=0; j<m; j++)
-                nodes[i][j] = -1;
+    // if(nodes.size() != n || nodes[0].size() != m)
+    //     nodes = vector<vector<int>>(n, vector<int>(m, -1));
+    // else for(int i=0; i<n; i++)
+    //         for(int j=0; j<m; j++)
+    //             nodes[i][j] = -1;
 
-    int nodeid = 0, edge_count=0;
+    // int nodeid = 0, edge_count=0;
 
-    for(int i=0; i<n; i++){
-        for(int j=0; j<m; j++)
-            if(img.at<uchar>(i, j)>FILTER_THRESHOLD){
-                nodes[i][j] = nodeid;
+    // for(int i=0; i<n; i++){
+    //     for(int j=0; j<m; j++)
+    //         if(img.at<uchar>(i, j)>FILTER_THRESHOLD){
+    //             nodes[i][j] = nodeid;
 
-                writer.x<<i<<','<<j<<','<<to_string(src_img.at<uchar>(i, j))<<','<<to_string(xPrewitt(src_img, i, j))<<','<<to_string(yPrewitt(src_img, i, j))<<endl;
+    //             writer.x<<i<<','<<j<<','<<to_string(src_img.at<uchar>(i, j))<<','<<to_string(xPrewitt(src_img, i, j))<<','<<to_string(yPrewitt(src_img, i, j))<<endl;
 
-                if(j>0 && nodes[i][j-1] != -1){
-                    writer.A<<nodes[i][j-1]<<','<<nodeid<<endl;
-                    writer.A<<nodeid<<','<<nodes[i][j-1]<<endl;
-                    edge_count += 2;
-                }
+    //             if(j>0 && nodes[i][j-1] != -1){
+    //                 writer.A<<nodes[i][j-1]<<','<<nodeid<<endl;
+    //                 writer.A<<nodeid<<','<<nodes[i][j-1]<<endl;
+    //                 edge_count += 2;
+    //             }
 
-                if(i>0 && nodes[i-1][j] != -1){
-                    writer.A<<nodes[i-1][j]<<','<<nodeid<<endl;
-                    writer.A<<nodeid<<','<<nodes[i-1][j]<<endl;
-                    edge_count += 2;
-                }
+    //             if(i>0 && nodes[i-1][j] != -1){
+    //                 writer.A<<nodes[i-1][j]<<','<<nodeid<<endl;
+    //                 writer.A<<nodeid<<','<<nodes[i-1][j]<<endl;
+    //                 edge_count += 2;
+    //             }
 
-                if(i>0 && j>0 && nodes[i-1][j-1] != -1){
-                    writer.A<<nodes[i-1][j-1]<<','<<nodeid<<endl;
-                    writer.A<<nodeid<<','<<nodes[i-1][j-1]<<endl;
-                    edge_count += 2;
-                }
+    //             if(i>0 && j>0 && nodes[i-1][j-1] != -1){
+    //                 writer.A<<nodes[i-1][j-1]<<','<<nodeid<<endl;
+    //                 writer.A<<nodeid<<','<<nodes[i-1][j-1]<<endl;
+    //                 edge_count += 2;
+    //             }
 
-                if(i>0 && j<m-1 && nodes[i-1][j+1] != -1){
-                    writer.A<<nodes[i-1][j+1]<<','<<nodeid<<endl;
-                    writer.A<<nodeid<<','<<nodes[i-1][j+1]<<endl;
-                    edge_count += 2;
-                }
+    //             if(i>0 && j<m-1 && nodes[i-1][j+1] != -1){
+    //                 writer.A<<nodes[i-1][j+1]<<','<<nodeid<<endl;
+    //                 writer.A<<nodeid<<','<<nodes[i-1][j+1]<<endl;
+    //                 edge_count += 2;
+    //             }
 
-                nodeid += 1;
-            }
-    }
+    //             nodeid += 1;
+    //         }
+    // }
 
-    writer.y<<nodeid<<','<<edge_count<<','<<label<<endl;
+    // writer.y<<nodeid<<','<<edge_count<<','<<label<<endl;
 }
 
 bool hasEnding(const string &str, const string &suffix) {

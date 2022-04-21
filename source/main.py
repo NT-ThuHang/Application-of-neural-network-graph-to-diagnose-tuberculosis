@@ -11,7 +11,8 @@ from tqdm import tqdm
 from utils import Logger, plot_confusion_matrix, plot_ROC
 from config import Config
 from graphDataset import GraphDataset
-from model import GCN, GCN_GMT, GCN_test
+from model import GCN, GCN_GMT, GCN_test, MyGraphUNet
+from torch_geometric.nn.models import GraphUNet, GIN, DeepGCNLayer
 
 import torch
 from sklearn.metrics import classification_report, confusion_matrix
@@ -26,7 +27,7 @@ parser.add_argument('--embedding', default='_4_local', help='Graph embedding met
 parser.add_argument('--message')
 parser.add_argument('--ckpt', help='Model checkpoint path')
 parser.add_argument('--lr', default = 5e-3, help='Learning rate', type = float)
-parser.add_argument('--device', default = '3')
+parser.add_argument('--device', default = '2')
 
 args = parser.parse_args()
 
@@ -42,24 +43,25 @@ print('Train-val-test sizes:', dataset.sizes)
 if args.ckpt:
     model = torch.load(args.ckpt, map_location=device)
 else:
-    input_channels = 5
+    input_channels = dataset.num_node_features
     hidden_channels = [32, 32, 32]
     output_channels = dataset.n_classes
 
-    # model = GCN_GMT(channels = [input_channels, *hidden_channels, output_channels])
-    model = GCN_test(channels = [input_channels, *hidden_channels, output_channels])
+    model = GCN(channels = [input_channels, *hidden_channels, output_channels])
+    # model = GraphUNet(input_channels, hidden_channels[0], output_channels, depth = 3)
     model = model.to(device)
 
 n_params = sum(p.numel() for p in model.parameters())
 print('Total parameters:', n_params)
 
-optimizer = torch.optim.AdamW(model.parameters(), lr = args.lr)
+optimizer = torch.optim.Adam(model.parameters(), lr = args.lr)
 criterion = torch.nn.CrossEntropyLoss(reduction = 'sum')
 logger = Logger(config.save / 'log.txt', args.message)
 
 def train():
     model.train()
-    for data in tqdm(train_loader):
+    pbar = tqdm(train_loader, leave=False)
+    for data in pbar:
         data = data.to(device)
         out = model(data.x, data.edge_index, data.batch)
         loss = criterion(out, data.y)
@@ -72,7 +74,7 @@ def eval(loader):
 
     correct, loss = 0, 0
     with torch.no_grad():
-        for data in tqdm(loader):   
+        for data in tqdm(loader, leave=False):   
             data = data.to(device)   
             out = model(data.x, data.edge_index, data.batch)
             pred = out.argmax(dim=1)
@@ -113,7 +115,7 @@ def train_loop(checkpoint_path, max_epoch = 200, lr_step = None, patience = 4):
     counter = 0
 
     if lr_step is not None:
-        scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.7, verbose = True)
+        scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.8, verbose = True)
 
     for epoch in range(1, max_epoch+1):
         train()

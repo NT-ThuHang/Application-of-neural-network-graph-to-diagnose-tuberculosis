@@ -10,7 +10,7 @@ class Config(object):
 
         # define variables
         self.train_ratio = 0.8
-        self.batch_size = 64
+        self.batch_size = 32
 
     def setup(self):
         if self.save is None:
