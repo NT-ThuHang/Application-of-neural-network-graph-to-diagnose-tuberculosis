@@ -5,13 +5,11 @@
 import os
 import numpy as np
 import argparse
-import shutil
 from pathlib import Path
 from tqdm import tqdm
-import configparser
+from configparser import ConfigParser, ExtendedInterpolation
 
 from utils import Logger, plot_confusion_matrix, plot_ROC
-from config import Config
 from graphDataset import GraphDataset
 from model import GCN, GCN_GMT, GCN_test, MyGraphUNet
 from torch_geometric.nn.models import GraphUNet, GIN, DeepGCNLayer
@@ -22,58 +20,42 @@ from sklearn.metrics import classification_report, confusion_matrix
 
 # -------------------- Define parser -------------------- #
 parser = argparse.ArgumentParser()
-# parser.add_argument('data', help='Path to data directory, or processed data file', type = Path)
-#parser.add_argument('--trained_path', help='Path to data directory that consist of trained model', type = Path)
-# parser.add_argument('-s', '--save_path', default=None, help='Directory path to save intermediate results', type = Path)
-# parser.add_argument('--edge', default='prewitt', help='Edge detection method')
-# parser.add_argument('--embedding', default='_4_local', help='Graph embedding method')
-# parser.add_argument('--message')
-# parser.add_argument('--lr', default = 5e-3, help='Learning rate', type = float)
-# parser.add_argument('--lr_step', default = 5, help='Learning rate step', type = float)
-# parser.add_argument('--gamma', default = 0.7, help='Gamma', type = float)
-# parser.add_argument('--device', default = '3')
 parser.add_argument('config', default = 'config.ini')
-
-def setup_config(config):
-
-    if (config['DEFAULT']['checkpoint_path'] == ''):
-        # generate to use if not provided
-        root = Path(config['DEFAULT']['save_path'])
-        counter = 0
-        while True:
-            counter += 1
-            path = root / 'result{:02d}'.format(counter)
-            # if directory is not exist or empty
-            if not path.exists() or not list(path.iterdir()):
-                path.mkdir(parents=True, exist_ok = True)
-                config['DEFAULT']['save_path'] = str(path)
-                break
-    print('Intermediate results will be stored in', str(config['DEFAULT']['save_path']))
-
-
 args = parser.parse_args()
-config = configparser.ConfigParser()
-config.read(args.config)
-
-
 
 # -------------------- Import config -------------------- #
+config = ConfigParser(interpolation=ExtendedInterpolation())
+config.read(args.config)
+
+def setup_config(config):
+    root = Path(config['PATH']['save'])
+    counter = 0
+    while True:
+        counter += 1
+        path = root / 'result{:02d}'.format(counter)
+        # if directory is not exist or empty
+        if not path.exists() or not list(path.iterdir()):
+            path.mkdir(parents=True, exist_ok = True)
+            config['PATH']['save'] = str(path)
+            break
+    print('Intermediate results will be stored in', str(path))
+    
 setup_config(config)
 
 # -------------------- Load data -------------------- #
-dataset = GraphDataset(config['DEFAULT'])
+dataset = GraphDataset(config)
 train_loader, val_loader, test_loader = dataset.getLoaders()
 print('Train-val-test sizes:', dataset.sizes)
 
-# -------------------- Define function -------------------- #
-#set up device
-device = torch.device('cuda:'+config['DEFAULT']['device'] if torch.cuda.is_available() else 'cpu')
+# -------------------- Load model -------------------- #
+device = torch.device('cuda:'+config['OTHER']['device'] if torch.cuda.is_available() else 'cpu')
 
-if (config['DEFAULT']['checkpoint_path'] != ''):
-    model = torch.load(config['DEFAULT']['checkpoint_path'], map_location=torch.device(device))
+if Path(config['PATH']['checkpoint']).exists():
+    print('Resume Trainning')
+    model = torch.load(config['PATH']['checkpoint'], map_location=torch.device(device))
 else:
     input_channels = dataset.num_node_features
-    hidden_channels = tuple([int(x) for x in config['DEFAULT']['hidden_channels'][1:-2].split(", ")])
+    hidden_channels = eval(config['HPARAMS']['hidden_channels'])
     output_channels = dataset.n_classes
 
     model = GCN(channels = [input_channels, *hidden_channels, output_channels])
@@ -83,13 +65,9 @@ else:
 n_params = sum(p.numel() for p in model.parameters())
 print('Total parameters:', n_params)
 
-config['DEFAULT']['checkpoint_path'] = os.path.join(Path(config['DEFAULT']['save_path']), 'model_checkpoint.ckpt' )
-config['DEFAULT']['logs_path'] = os.path.join(Path(config['DEFAULT']['save_path']), 'log.txt' )
-config['DEFAULT']['data'] = os.path.join(Path(config['DEFAULT']['save_path']), 'data.pt' )
-
-optimizer = torch.optim.AdamW(model.parameters(), lr = float(config['DEFAULT']['lr']))
+optimizer = torch.optim.AdamW(model.parameters(), lr = float(config['HPARAMS']['lr']))
 criterion = torch.nn.CrossEntropyLoss(reduction = 'sum')
-logger = Logger(Path(config['DEFAULT']['logs_path']), config['DEFAULT']['message'])
+logger = Logger(config['PATH']['logs'], config['OTHER']['message'])
 
 def train():
     model.train()
@@ -115,7 +93,6 @@ def eval(loader):
             loss += criterion(out, data.y)
     return correct / len(loader.dataset), loss/ len(loader.dataset)
 
-
 def test(model, loader):
     model.eval()
     y_true, y_pred, loss = [], [], 0
@@ -131,10 +108,10 @@ def test(model, loader):
     report = classification_report(y_true, y_pred, digits =4)
     c_mat = confusion_matrix(y_true, y_pred)
     avg_loss = loss.item()/len(y_pred)
-    #plot_confusion_matrix(c_mat, labels = dataset.labels, save = os.path.join(Path(config['DEFAULT']['save_path']), 'confusion_matrix.png'))
+    plot_confusion_matrix(c_mat, labels = dataset.labels, save = Path(config['PATH']['save']) / 'confusion_matrix.png')
 
     # plot_ROC(c_mat, labels = dataset.labels, 
-    #                     save = config['DEFAULT'].save / 'ROC.svg')
+    #                     save = config['HPARAMS'].save / 'ROC.svg')
 
     logger.log("Result in test set")
     logger.log(report)
@@ -146,10 +123,10 @@ def train_loop(config):
     best_loss = 99.99
     counter = 0 
 
-    if config['DEFAULT']['lr_step'] is not None:
-        scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, float(config['DEFAULT']['gamma']), verbose = True)
+    if config['HPARAMS']['lr_step']:
+        scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, float(config['HPARAMS']['gamma']), verbose = True)
 
-    for epoch in range(1, int(config['DEFAULT']['max_epoch'])+1):
+    for epoch in range(1, int(config['HPARAMS']['max_epoch'])+1):
         train()
         #train_acc, train_loss = eval(train_loader)
         val_acc, val_loss = eval(val_loader)
@@ -159,24 +136,22 @@ def train_loop(config):
         if val_loss < best_loss:
             best_loss = val_loss
             counter = 0
-            torch.save(model, config['DEFAULT']['checkpoint_path'])
+            torch.save(model, config['PATH']['checkpoint'])
         else:
             counter += 1
-            if counter == int(config['DEFAULT']['patience']):
+            if counter == int(config['HPARAMS']['patience']):
                 print('Early stopping')
                 break
 
-        if config['DEFAULT']['lr_step'] is not None:
-            if epoch % int(config['DEFAULT']['lr_step']) == 0:
+        if config['HPARAMS']['lr_step']:
+            if epoch % int(config['HPARAMS']['lr_step']) == 0:
                 scheduler.step()
-
-    
 
 # -------------------- Training -------------------- #
 train_loop(config)
-with open(os.path.join(config['DEFAULT']['save_path'], 'config.ini'), 'w') as configfile:
+with open(config['PATH']['config'], 'w') as configfile:
     config.write(configfile)
 
-best_model = torch.load(config['DEFAULT']['checkpoint_path'], map_location=device)
+best_model = torch.load(config['PATH']['checkpoint'], map_location=device)
 test(best_model, test_loader)
 

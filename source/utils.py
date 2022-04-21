@@ -35,12 +35,12 @@ def to_pyg(x, edge_head, edge_tail, y):
 				edge_index = torch.tensor([edge_head, edge_tail], dtype = int),
 				y = torch.tensor([y]))
 	
-def edge_detection(source, dest, method='prewitt', save_edge=False, lower_threshold=20, upper_threshold=300):
+def graph_preparation(source, dest, edge_detection, save_edge=False, lower_threshold=20, upper_threshold=300):
 	if save_edge:
-		edge_dir_path = dest / (source.name+'_'+method)
+		edge_dir_path = dest / (source.name+'_'+edge_detection)
 		edge_dir_path.mkdir(parents=True, exist_ok=True)
 
-	k = 1 if method == 'prewitt' else 2
+	k = 1 if edge_detection == 'prewitt' else 2
 	kernel_x = np.array([[-1, 0, 1], [-k, 0, k], [-1, 0, 1]])
 	kernel_y = np.array([[-1, -k, -1], [0, 0, 0], [1, k, 1]])
 
@@ -125,23 +125,3 @@ def plot_ROC(cm, labels, save = None, title = 'ROC'):
 		plt.savefig(save, bbox_inches='tight', format = save.name.split('.')[-1])
 	else:
 		plt.show()
-
-
-if __name__ == '__main__':
-	parser = argparse.ArgumentParser()
-	parser.add_argument('task')
-	parser.add_argument('source', type = Path)
-	parser.add_argument('-d', '--dest', type = Path)
-	args = parser.parse_args()
-
-	if args.task == 'edge_detection':
-		if args.dest is None:
-			edge_detection(args.source, args.source.parent)
-		else:
-			edge_detection(args.source, args.dest)
-	elif args.task == 'image_to_graph':
-		# TODO
-		pass
-	elif args.task == 'raw_to_graphs':
-		# TODO
-		pass

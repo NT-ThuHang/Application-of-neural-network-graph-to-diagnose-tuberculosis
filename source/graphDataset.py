@@ -2,7 +2,7 @@ import os
 import random
 from tqdm import tqdm
 from glob import glob
-from utils import edge_detection
+from utils import graph_preparation
 from pathlib import Path
 import torch
 from torch.utils.data import random_split
@@ -11,16 +11,15 @@ from torch_geometric.loader import DataLoader
 
 class GraphDataset():
     def __init__(self, config):
-        self.data = Path(config['data'])
-        print(self.data)
-        self.save = Path(config['save_path'])
-        self.edge_detection_method = config['edge_detection_method']
-        self.batch_size = int(config['batch_size'])
+        self.data = Path(config['PATH']['data'])
+        self.save = Path(config['PATH']['save'])
+        self.edge_detection = config['METHOD']['edge_detection']
+        self.batch_size = int(config['HPARAMS']['batch_size'])
 
         if self.data.is_dir():
-            self.dataset, self.labels = edge_detection(self.data, self.save)
+            self.dataset, self.labels = graph_preparation(self.data, self.save, edge_detection=self.edge_detection)
             random.shuffle(self.dataset)
-            torch.save((self.dataset, self.labels), self.save / 'data.pt')
+            torch.save((self.dataset, self.labels), self.save / (self.data.name + '.pt'))
         else:
             self.dataset, self.labels = torch.load(self.data)
 
