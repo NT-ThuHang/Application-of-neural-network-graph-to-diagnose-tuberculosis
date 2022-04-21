@@ -14,7 +14,7 @@ class Config(object):
 
         # define variables
         self.train_ratio = 0.8
-        self.batch_size = 64
+        self.batch_size = 32
 
         #Hardware
         self.device = torch.device('cuda:'+args.device if torch.cuda.is_available() else 'cpu')

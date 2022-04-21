@@ -1,0 +1,116 @@
+Message: 
+Message: 
+Message: 
+Epoch: 001, Val Acc: 0.0000, Val Loss: 0.7537
+Epoch: 002, Val Acc: 0.0000, Val Loss: 0.7935
+Epoch: 003, Val Acc: 0.0000, Val Loss: 0.8428
+Epoch: 004, Val Acc: 0.0000, Val Loss: 0.8962
+Epoch: 005, Val Acc: 0.0000, Val Loss: 0.9558
+Message: 
+Epoch: 001, Val Acc: 0.0000, Val Loss: 0.7137
+Epoch: 002, Val Acc: 0.0000, Val Loss: 0.7557
+Epoch: 003, Val Acc: 0.0000, Val Loss: 0.8053
+Epoch: 004, Val Acc: 0.0000, Val Loss: 0.8522
+Epoch: 005, Val Acc: 0.0000, Val Loss: 0.8908
+Message: 
+Epoch: 001, Val Acc: 1.0000, Val Loss: 0.6845
+Epoch: 002, Val Acc: 1.0000, Val Loss: 0.6604
+Epoch: 003, Val Acc: 1.0000, Val Loss: 0.6288
+Epoch: 004, Val Acc: 1.0000, Val Loss: 0.5996
+Epoch: 005, Val Acc: 1.0000, Val Loss: 0.5793
+Epoch: 006, Val Acc: 1.0000, Val Loss: 0.5701
+Epoch: 007, Val Acc: 1.0000, Val Loss: 0.5601
+Epoch: 008, Val Acc: 1.0000, Val Loss: 0.5499
+Epoch: 009, Val Acc: 1.0000, Val Loss: 0.5377
+Epoch: 010, Val Acc: 1.0000, Val Loss: 0.5268
+Epoch: 011, Val Acc: 1.0000, Val Loss: 0.5260
+Epoch: 012, Val Acc: 1.0000, Val Loss: 0.5277
+Epoch: 013, Val Acc: 1.0000, Val Loss: 0.5363
+Epoch: 014, Val Acc: 1.0000, Val Loss: 0.5465
+Epoch: 015, Val Acc: 1.0000, Val Loss: 0.5566
+Message: 
+Epoch: 001, Val Acc: 1.0000, Val Loss: 0.5153
+Epoch: 002, Val Acc: 1.0000, Val Loss: 0.4670
+Epoch: 003, Val Acc: 1.0000, Val Loss: 0.4573
+Epoch: 004, Val Acc: 1.0000, Val Loss: 0.4596
+Epoch: 005, Val Acc: 1.0000, Val Loss: 0.4580
+Epoch: 006, Val Acc: 1.0000, Val Loss: 0.4571
+Epoch: 007, Val Acc: 1.0000, Val Loss: 0.4487
+Epoch: 008, Val Acc: 1.0000, Val Loss: 0.4406
+Epoch: 009, Val Acc: 1.0000, Val Loss: 0.4303
+Epoch: 010, Val Acc: 1.0000, Val Loss: 0.4248
+Epoch: 011, Val Acc: 1.0000, Val Loss: 0.4287
+Epoch: 012, Val Acc: 1.0000, Val Loss: 0.4320
+Epoch: 013, Val Acc: 1.0000, Val Loss: 0.4380
+Epoch: 014, Val Acc: 1.0000, Val Loss: 0.4458
+Message: 
+Epoch: 001, Val Acc: 0.0000, Val Loss: 0.7813
+Epoch: 002, Val Acc: 0.0000, Val Loss: 0.8228
+Epoch: 003, Val Acc: 0.0000, Val Loss: 0.8444
+Epoch: 004, Val Acc: 0.0000, Val Loss: 0.8513
+Epoch: 005, Val Acc: 0.0000, Val Loss: 0.8499
+Message: 
+Epoch: 001, Val Acc: 1.0000, Val Loss: 0.4564
+Epoch: 002, Val Acc: 1.0000, Val Loss: 0.4956
+Epoch: 003, Val Acc: 1.0000, Val Loss: 0.5307
+Epoch: 004, Val Acc: 1.0000, Val Loss: 0.5695
+Epoch: 005, Val Acc: 1.0000, Val Loss: 0.6115
+Message: 
+Epoch: 001, Val Acc: 0.0000, Val Loss: 0.8667
+Epoch: 002, Val Acc: 0.0000, Val Loss: 0.9988
+Epoch: 003, Val Acc: 0.0000, Val Loss: 1.1117
+Epoch: 004, Val Acc: 0.0000, Val Loss: 1.1881
+Epoch: 005, Val Acc: 0.0000, Val Loss: 1.2359
+Result in test set
+              precision    recall  f1-score   support
+
+           0     0.0000    0.0000    0.0000       2.0
+           1     0.0000    0.0000    0.0000       0.0
+
+    accuracy                         0.0000       2.0
+   macro avg     0.0000    0.0000    0.0000       2.0
+weighted avg     0.0000    0.0000    0.0000       2.0
+
+Confusion matrix:
+[[0 2]
+ [0 0]]
+Loss: 0.8910186886787415
+Message: 
+Epoch: 001, Val Acc: 1.0000, Val Loss: 0.5098
+Epoch: 002, Val Acc: 1.0000, Val Loss: 0.5013
+Epoch: 003, Val Acc: 1.0000, Val Loss: 0.4866
+Epoch: 004, Val Acc: 1.0000, Val Loss: 0.4751
+Epoch: 005, Val Acc: 1.0000, Val Loss: 0.4642
+Epoch: 006, Val Acc: 1.0000, Val Loss: 0.4578
+Epoch: 007, Val Acc: 1.0000, Val Loss: 0.4495
+Epoch: 008, Val Acc: 1.0000, Val Loss: 0.4385
+Epoch: 009, Val Acc: 1.0000, Val Loss: 0.4230
+Epoch: 010, Val Acc: 1.0000, Val Loss: 0.4040
+Epoch: 011, Val Acc: 1.0000, Val Loss: 0.3928
+Epoch: 012, Val Acc: 1.0000, Val Loss: 0.3794
+Epoch: 013, Val Acc: 1.0000, Val Loss: 0.3667
+Epoch: 014, Val Acc: 1.0000, Val Loss: 0.3552
+Epoch: 015, Val Acc: 1.0000, Val Loss: 0.3481
+Epoch: 016, Val Acc: 1.0000, Val Loss: 0.3489
+Epoch: 017, Val Acc: 1.0000, Val Loss: 0.3456
+Epoch: 018, Val Acc: 1.0000, Val Loss: 0.3448
+Epoch: 019, Val Acc: 1.0000, Val Loss: 0.3451
+Epoch: 020, Val Acc: 1.0000, Val Loss: 0.3437
+Epoch: 021, Val Acc: 1.0000, Val Loss: 0.3438
+Epoch: 022, Val Acc: 1.0000, Val Loss: 0.3462
+Epoch: 023, Val Acc: 1.0000, Val Loss: 0.3520
+Epoch: 024, Val Acc: 1.0000, Val Loss: 0.3504
+Result in test set
+              precision    recall  f1-score   support
+
+           0     1.0000    1.0000    1.0000         1
+           1     1.0000    1.0000    1.0000         1
+
+    accuracy                         1.0000         2
+   macro avg     1.0000    1.0000    1.0000         2
+weighted avg     1.0000    1.0000    1.0000         2
+
+Confusion matrix:
+[[1 0]
+ [0 1]]
+Loss: 0.16827863454818726

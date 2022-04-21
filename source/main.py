@@ -8,12 +8,13 @@ import argparse
 import shutil
 from pathlib import Path
 from tqdm import tqdm
+import configparser
 
 from utils import Logger, plot_confusion_matrix, plot_ROC
 from config import Config
 from graphDataset import GraphDataset
-from model import GCN, GCN_GMT, GCN_test
-import configparser
+from model import GCN, GCN_GMT, GCN_test, MyGraphUNet
+from torch_geometric.nn.models import GraphUNet, GIN, DeepGCNLayer
 
 import torch
 from sklearn.metrics import classification_report, confusion_matrix
@@ -71,12 +72,12 @@ device = torch.device('cuda:'+config['DEFAULT']['device'] if torch.cuda.is_avail
 if (config['DEFAULT']['checkpoint_path'] != ''):
     model = torch.load(config['DEFAULT']['checkpoint_path'], map_location=torch.device(device))
 else:
-    input_channels = int(config['DEFAULT']['input_channels'])
+    input_channels = dataset.num_node_features
     hidden_channels = tuple([int(x) for x in config['DEFAULT']['hidden_channels'][1:-2].split(", ")])
     output_channels = dataset.n_classes
 
-    # model = GCN_GMT(channels = [input_channels, *hidden_channels, output_channels])
-    model = GCN_test(channels = [input_channels, *hidden_channels, output_channels])
+    model = GCN(channels = [input_channels, *hidden_channels, output_channels])
+    # model = GraphUNet(input_channels, hidden_channels[0], output_channels, depth = 3)
     model = model.to(device)
 
 n_params = sum(p.numel() for p in model.parameters())
@@ -92,7 +93,8 @@ logger = Logger(Path(config['DEFAULT']['logs_path']), config['DEFAULT']['message
 
 def train():
     model.train()
-    for data in tqdm(train_loader):
+    pbar = tqdm(train_loader, leave=False)
+    for data in pbar:
         data = data.to(device)
         out = model(data.x, data.edge_index, data.batch)
         loss = criterion(out, data.y)
@@ -105,7 +107,7 @@ def eval(loader):
 
     correct, loss = 0, 0
     with torch.no_grad():
-        for data in tqdm(loader):   
+        for data in tqdm(loader, leave=False):   
             data = data.to(device)   
             out = model(data.x, data.edge_index, data.batch)
             pred = out.argmax(dim=1)

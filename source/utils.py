@@ -27,141 +27,68 @@ class Logger():
 	def __del__(self):
 		self.file.close()
 
-# applying filter on a single image
-def apply_filter(file, filter):
-
-	# print("reading file---> "+str(filename))
-	img = cv2.imread(str(file), cv2.IMREAD_GRAYSCALE)
-
-	# img=cv2.resize(img,(250,250))
-	# comment out the above line if there is memory issue i.e. need to resize all images to smaller dim
-
-	h, w = img.shape
-	# print("shape: "+str(h)+" x "+str(w)+"\n")
-	# define filters
-	horizontal = filter
-	vertical = np.transpose(filter)
-
-	# define images with 0s
-	newgradientImage = np.zeros((h, w))
-
-	# offset by 1
-	for i in range(1, h - 1):
-		for j in range(1, w - 1):
-			
-			horizontalGrad = (horizontal[0, 0] * img[i - 1, j - 1]) + \
-							(horizontal[0, 2] * img[i - 1, j + 1]) + \
-							(horizontal[1, 0] * img[i, j - 1]) + \
-							(horizontal[1, 2] * img[i, j + 1]) + \
-							(horizontal[2, 0] * img[i + 1, j - 1]) + \
-							(horizontal[2, 2] * img[i + 1, j + 1])
-
-			verticalGrad = (vertical[0, 0] * img[i - 1, j - 1]) + \
-							(vertical[0, 1] * img[i - 1, j]) + \
-							(vertical[0, 2] * img[i - 1, j + 1]) + \
-							(vertical[2, 0] * img[i + 1, j - 1]) + \
-							(vertical[2, 1] * img[i + 1, j]) + \
-							(vertical[2, 2] * img[i + 1, j + 1])
-
-			# Edge Magnitude
-			mag = np.sqrt(pow(horizontalGrad, 2.0) + pow(verticalGrad, 2.0))
-			newgradientImage[i - 1, j - 1] = mag
-
-	return newgradientImage
-
-def to_pyg(x, edge, y):
+def to_pyg(x, edge_head, edge_tail, y):
 	scaler = StandardScaler()
 	x = scaler.fit_transform(x)
 
 	return Data(x = torch.tensor(x, dtype = torch.float),
-				edge_index = torch.tensor(edge, dtype = int),
+				edge_index = torch.tensor([edge_head, edge_tail], dtype = int),
 				y = torch.tensor([y]))
 	
-def edge_detection(source, dest, method='prewitt'):
-	edge_dir_path = dest / (source.name+'_'+method)
-	edge_dir_path.mkdir(parents=True, exist_ok=True)
+def edge_detection(source, dest, method='prewitt', save_edge=False, lower_threshold=20, upper_threshold=300):
+	if save_edge:
+		edge_dir_path = dest / (source.name+'_'+method)
+		edge_dir_path.mkdir(parents=True, exist_ok=True)
 
+	k = 1 if method == 'prewitt' else 2
+	kernel_x = np.array([[-1, 0, 1], [-k, 0, k], [-1, 0, 1]])
+	kernel_y = np.array([[-1, -k, -1], [0, 0, 0], [1, k, 1]])
+
+	class_id = 0
+	dataset, labels = [], []
 	for entry in source.iterdir():
 		if entry.is_dir():
-			dest_dir_path = edge_dir_path / entry.name
-			dest_dir_path.mkdir(parents=True, exist_ok=True)
-			print("\n\n---reading directory "+str(entry)+"---\n")
+			labels.append(entry.name)
+			print("Reading directory "+str(entry))
 
 			for source_file in tqdm(entry.iterdir()):
-				imagemat = apply_filter(source_file, np.array([[-1,0,1],[-1,0,1],[-1,0,1]]))
-				dest_file = dest_dir_path / source_file.name
-				cv2.imwrite(str(dest_file), imagemat)
+				img = cv2.imread(str(source_file), cv2.IMREAD_GRAYSCALE).astype(np.int16)
+				img_x = cv2.filter2D(img, -1, kernel_x)
+				img_y = cv2.filter2D(img, -1, kernel_y)
+				w, h = img.shape
+				img_edge = np.zeros(shape=(w, h), dtype=np.int16)
+				img_edge = np.abs(img_x)+np.abs(img_y)
 
+				nodes = np.full((h, w), -1)
+				nodeid = 0
 
-def image_to_graph(filename, label):
-	x = []
-	edge = [[], []]
+				x, edge_head, edge_tail = [], [], []
+				for i in range(1, h-1):
+					for j in range(1, w-1):
+						if upper_threshold > img_edge[i, j] > lower_threshold:
+							nodes[i, j] = nodeid
+							nodeid += 1
 
-	img = cv2.imread(filename, cv2.IMREAD_GRAYSCALE)
-	height, width = img.shape
+							if nodes[i][j-1] != -1:
+								edge_head += (nodes[i, j], nodes[i, j-1])
+								edge_tail += (nodes[i, j-1], nodes[i, j])
 
-	nodes = np.full((height, width), -1)
-	nodeid = 0
+							if nodes[i-1][j] != -1:
+								edge_head += (nodes[i, j], nodes[i-1, j])
+								edge_tail += (nodes[i-1, j], nodes[i, j])
 
-	half = np.max(img)/2
+							x.append((i, j, img[i, j], img_x[i, j], img_y[i, j]))
+								
+				dataset.append(to_pyg(x, edge_head, edge_tail, class_id))
 
-	for i in range(height):
-		for j in range(width):
-			if img[i][j] >=half:
-				nodes[i][j] = nodeid
-				nodeid += 1
-				x.append((i, j))
-				# x.append([i, j, node[i][j]])
+				if save_edge:
+					dest_dir_path = edge_dir_path / entry.name
+					dest_dir_path.mkdir(parents=True, exist_ok=True)
+					dest_file = dest_dir_path / source_file.name
+					cv2.imwrite(str(dest_file), img_edge)
 
-				if j>0 and nodes[i][j-1] != -1:
-					edge[0].extend((nodes[i][j], nodes[i][j-1]))
-					edge[1].extend((nodes[i][j-1], nodes[i][j]))
-
-				if i>0 and nodes[i-1][j] != -1:
-					edge[0].extend((nodes[i][j], nodes[i-1][j]))
-					edge[1].extend((nodes[i-1][j], nodes[i][j]))
-
-	return to_pyg(x, edge, label)
-
-
-def raw_to_graphs(raw_dir : Path):
-	print('Running raw_to_graphs')
-
-	x_path = raw_dir / 'node_features.txt'
-	A_path = raw_dir / 'edges.txt'
-	y_path = raw_dir / 'graph_features.txt'
-	Y_path = raw_dir / 'label_names.txt'
-
-	x_file = x_path.open('r')
-	A_file = A_path.open('r')
-	y_file = y_path.open('r')
-	Y_file = Y_path.open('r')
-
-	dataset = list()
-	label_names = Y_file.readlines()
-
-	for graph_entry in tqdm(y_file):
-		n_nodes, n_edges, label = graph_entry.split(',')
-		n_nodes, n_edges, label = int(n_nodes), int(n_edges), int(label)
-
-		x, A_head, A_tail = [], [], []
-		for _ in range(n_nodes):
-			node = tuple(int(feature) for feature in x_file.readline().split(','))
-			x.append(node)
-
-		for _ in range(n_edges):
-			head, tail = A_file.readline().split(',')
-			A_head.append(int(head))
-			A_tail.append(int(tail))
-
-		dataset.append(to_pyg(x, [A_head, A_tail], label))
-
-	x_file.close()
-	A_file.close()
-	y_file.close()
-	Y_file.close()
-
-	return dataset, label_names
+			class_id += 1
+	return dataset, labels
 
 def plot_confusion_matrix(cm, labels, save = None, title = 'Confusion matrix'):
 	#assert len(cm) == len(labels)
