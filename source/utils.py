@@ -1,20 +1,21 @@
+import os
 import numpy as np
 import cv2
-import argparse
 from tqdm import tqdm
-from pathlib import Path
 import torch
 from torch_geometric.data import Data
 from sklearn.preprocessing import StandardScaler
-import sklearn.metrics as metrics
+from sklearn.metrics import auc, roc_curve
 
 import matplotlib.pyplot as plt
 import seaborn as sns
+from torch_geometric.transforms.remove_isolated_nodes import RemoveIsolatedNodes
 
 class Logger():
 	def __init__(self, filename, message = None):
 		self.file = open(filename, 'a')
-		if message is not None:
+		self.filename = filename
+		if message:
 			self.file.writelines("Message: "+message+'\n')
 
 	def log(self, content, print_console = True):
@@ -26,6 +27,8 @@ class Logger():
 
 	def __del__(self):
 		self.file.close()
+		if os.path.getsize(self.filename) == 0:
+			os.remove(self.filename)
 
 def to_pyg(x, edge_head, edge_tail, y):
 	scaler = StandardScaler()
@@ -35,7 +38,7 @@ def to_pyg(x, edge_head, edge_tail, y):
 				edge_index = torch.tensor([edge_head, edge_tail], dtype = int),
 				y = torch.tensor([y]))
 	
-def graph_preparation(source, dest, edge_detection, save_edge=False, lower_threshold=20, upper_threshold=300):
+def graph_preparation(source, dest, edge_detection, save_edge=True, lower_threshold=20, upper_threshold=240):
 	if save_edge:
 		edge_dir_path = dest / (source.name+'_'+edge_detection)
 		edge_dir_path.mkdir(parents=True, exist_ok=True)
@@ -55,31 +58,34 @@ def graph_preparation(source, dest, edge_detection, save_edge=False, lower_thres
 				img = cv2.imread(str(source_file), cv2.IMREAD_GRAYSCALE).astype(np.int16)
 				img_x = cv2.filter2D(img, -1, kernel_x)
 				img_y = cv2.filter2D(img, -1, kernel_y)
-				w, h = img.shape
-				img_edge = np.zeros(shape=(w, h), dtype=np.int16)
+				h, w = img.shape
+				img_edge = np.zeros(shape=(h, w), dtype=np.int16)
 				img_edge = np.abs(img_x)+np.abs(img_y)
 
 				nodes = np.full((h, w), -1)
 				nodeid = 0
-
+				is_node = (upper_threshold > img_edge) & (img_edge > lower_threshold)
 				x, edge_head, edge_tail = [], [], []
+				
 				for i in range(1, h-1):
 					for j in range(1, w-1):
-						if upper_threshold > img_edge[i, j] > lower_threshold:
+						if is_node[i, j]:
 							nodes[i, j] = nodeid
-							nodeid += 1
 
-							if nodes[i][j-1] != -1:
-								edge_head += (nodes[i, j], nodes[i, j-1])
-								edge_tail += (nodes[i, j-1], nodes[i, j])
+							if j>1 and is_node[i, j-1]:
+								edge_head += (nodeid, nodes[i, j-1])
+								edge_tail += (nodes[i, j-1], nodeid)
 
-							if nodes[i-1][j] != -1:
-								edge_head += (nodes[i, j], nodes[i-1, j])
-								edge_tail += (nodes[i-1, j], nodes[i, j])
+							if i>1 and is_node[i-1, j]:
+								edge_head += (nodeid, nodes[i-1, j])
+								edge_tail += (nodes[i-1, j], nodeid)
 
 							x.append((i, j, img[i, j], img_x[i, j], img_y[i, j]))
-								
-				dataset.append(to_pyg(x, edge_head, edge_tail, class_id))
+							nodeid += 1
+
+				graph = to_pyg(x, edge_head, edge_tail, class_id)
+				remover = RemoveIsolatedNodes()
+				dataset.append(remover(graph))
 
 				if save_edge:
 					dest_dir_path = edge_dir_path / entry.name
@@ -107,20 +113,21 @@ def plot_confusion_matrix(cm, labels, save = None, title = 'Confusion matrix'):
 	else:
 		plt.show()
 
-def plot_ROC(cm, labels, save = None, title = 'ROC'):
-	assert len(cm) == len(labels)
-	# calculate the fpr and tpr for all thresholds of the classification
-	fpr, tpr, threshold = metrics.roc_curve(cm, labels)
-	roc_auc = metrics.auc(fpr, tpr)
-	#display
-	plt.title('Receiver Operating Characteristic (ROC)')
-	plt.plot(fpr, tpr, 'b', label = 'AUC = %0.2f' % roc_auc)
-	plt.legend(loc = 'lower right')
-	plt.plot([0, 1], [0, 1],'r--')
-	plt.xlim([0, 1])
-	plt.ylim([0, 1])
-	plt.ylabel('True Positive Rate')
+def plot_ROC(y_true, y_pred, save = None):
+	fpr, tpr, _ = roc_curve(y_true, y_pred)
+	roc_auc = auc(fpr, tpr)
+	plt.figure()
+	lw = 2
+	plt.plot(fpr, tpr, color='darkorange',
+			 lw=lw, label='ROC curve (area = %0.4f)' % roc_auc)
+	plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
+	plt.xlim([0.0, 1.0])
+	plt.ylim([0.0, 1.05])
 	plt.xlabel('False Positive Rate')
+	plt.ylabel('True Positive Rate')
+	plt.title('Receiver operating characteristic example')
+	plt.legend(loc="lower right")
+
 	if save is not None:
 		plt.savefig(save, bbox_inches='tight', format = save.name.split('.')[-1])
 	else:

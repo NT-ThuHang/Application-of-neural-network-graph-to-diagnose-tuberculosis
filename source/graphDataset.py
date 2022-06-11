@@ -1,20 +1,17 @@
-import os
 import random
-from tqdm import tqdm
-from glob import glob
 from utils import graph_preparation
 from pathlib import Path
 import torch
 from torch.utils.data import random_split
 from torch_geometric.loader import DataLoader
 
-
 class GraphDataset():
-    def __init__(self, config):
-        self.data = Path(config['PATH']['data'])
+    def __init__(self, data, config):
+        self.data = Path(data)
         self.save = Path(config['PATH']['save'])
         self.edge_detection = config['METHOD']['edge_detection']
         self.batch_size = int(config['HPARAMS']['batch_size'])
+        self.split_ratio = eval(config['HPARAMS']['split_ratio'])
 
         if self.data.is_dir():
             self.dataset, self.labels = graph_preparation(self.data, self.save, edge_detection=self.edge_detection)
@@ -33,8 +30,8 @@ class GraphDataset():
 
     def getLoaders(self):
         dataset_size = len(self.dataset)
-        train_set_size = int(dataset_size * 0.7)
-        val_set_size = int(dataset_size * 0.15)
+        train_set_size = int(dataset_size * self.split_ratio[0])
+        val_set_size = int(dataset_size * self.split_ratio[1])
         test_set_size = dataset_size - train_set_size - val_set_size
         self.sizes = [train_set_size, val_set_size, test_set_size]
 
