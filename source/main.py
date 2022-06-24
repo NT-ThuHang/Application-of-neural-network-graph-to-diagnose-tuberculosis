@@ -81,7 +81,7 @@ def train():
     model.train()
 
     correct, total_loss = 0, 0
-    for data in tqdm(train_loader, leave=False):
+    for data in tqdm(train_loader, leave=False, desc='Training'):
         data = data.to(device)
         out = model(data.x, data.edge_index, data.batch)
         loss = criterion(out, data.y.to(torch.float32))
@@ -100,7 +100,7 @@ def eval(loader):
 
     correct, loss = 0, 0
     with torch.no_grad():
-        for data in tqdm(loader, leave=False):   
+        for data in tqdm(loader, leave=False, desc='Validating'):   
             data = data.to(device)   
             out = model(data.x, data.edge_index, data.batch)
             pred = (out >= 0)
@@ -108,25 +108,23 @@ def eval(loader):
             loss += criterion(out, data.y.to(torch.float32))
     return correct / len(loader.dataset), loss/ len(loader.dataset)
 
-@timeit()
 def test(model, loader):
     model.eval()
     y_true, y_pred, loss = [], [], 0
     with torch.no_grad():
-        for data in loader:   
+        for data in tqdm(loader, desc='Testing', leave=False):   
             data = data.to(device)   
             out = model(data.x, data.edge_index, data.batch)
-            pred = (out >= 0)
-            y_pred += [e.item() for e in pred]
+            y_pred += [e.item() for e in out]
             y_true += [e.item() for e in data.y]
             loss += criterion(out, data.y.to(torch.float32))
-    
+
+    plot_ROC(y_true, y_pred, save = Path(config['PATH']['save']) / 'ROC.png')
+    y_pred = [y >= 0 for y in y_pred]
     report = classification_report(y_true, y_pred, digits=4)
     c_mat = confusion_matrix(y_true, y_pred)
     avg_loss = loss.item()/len(y_pred)
     plot_confusion_matrix(c_mat, labels = dataset.labels, save = Path(config['PATH']['save']) / 'confusion_matrix.png')
-
-    plot_ROC(y_true, y_pred, save = Path(config['PATH']['save']) / 'ROC.png')
 
     logger.log("Result in test set")
     logger.log(report)

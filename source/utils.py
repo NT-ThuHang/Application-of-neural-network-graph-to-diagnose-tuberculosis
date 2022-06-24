@@ -58,11 +58,11 @@ def graph_preparation(source, dest, edge_detection, save_edge=True, lower_thresh
 				img = cv2.imread(str(source_file), cv2.IMREAD_GRAYSCALE).astype(np.int16)
 				img_x = cv2.filter2D(img, -1, kernel_x)
 				img_y = cv2.filter2D(img, -1, kernel_y)
+				img_edge = np.sqrt(np.power(img_x.astype(np.float32), 2)+np.power(img_y.astype(np.float32), 2))
+				img_edge = np.minimum(img_edge, 255)
+				img_edge = np.uint8(img_edge)
 				h, w = img.shape
-				img_edge = np.zeros(shape=(h, w), dtype=np.int16)
-				img_edge = np.abs(img_x)+np.abs(img_y)
-
-				nodes = np.full((h, w), -1)
+				nodes = np.full(img.shape, -1)
 				nodeid = 0
 				is_node = (upper_threshold > img_edge) & (img_edge > lower_threshold)
 				x, edge_head, edge_tail = [], [], []
@@ -97,8 +97,8 @@ def graph_preparation(source, dest, edge_detection, save_edge=True, lower_thresh
 	return dataset, labels
 
 def plot_confusion_matrix(cm, labels, save = None, title = 'Confusion matrix'):
-	#assert len(cm) == len(labels)
-
+	assert len(cm) == len(labels)
+	plt.figure()
 	ax = sns.heatmap(cm, annot = True, cmap = 'Blues', fmt='d')
 	ax.set_title(title)
 	
@@ -127,7 +127,6 @@ def plot_ROC(y_true, y_pred, save = None):
 	plt.ylabel('True Positive Rate')
 	plt.title('Receiver operating characteristic example')
 	plt.legend(loc="lower right")
-
 	if save is not None:
 		plt.savefig(save, bbox_inches='tight', format = save.name.split('.')[-1])
 	else:

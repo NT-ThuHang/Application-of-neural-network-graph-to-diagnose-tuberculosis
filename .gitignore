@@ -2,4 +2,3 @@ sample_data/
 results/
 source/__pycache__/
 .vscode/
-data.pt
