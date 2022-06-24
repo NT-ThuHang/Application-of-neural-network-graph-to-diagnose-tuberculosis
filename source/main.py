@@ -16,7 +16,6 @@ from model import GNN
 
 import torch
 import torch_geometric as pyg
-from torch_geometric.profile import profileit, timeit
 from sklearn.metrics import classification_report, confusion_matrix
 
 
@@ -132,7 +131,6 @@ def test(model, loader):
     logger.log(c_mat)
     logger.log('Loss: '+str(avg_loss))
 
-@profileit()
 def train_loop(model, config):
     best_loss = 99.99
     counter = 0 
@@ -161,8 +159,7 @@ def train_loop(model, config):
                 scheduler.step()
 
 # -------------------- Training -------------------- #
-stats = train_loop(model, config)
-print(stats)
+train_loop(model, config)
 with open(config['PATH']['config'], 'w') as configfile:
     config.write(configfile)
 
